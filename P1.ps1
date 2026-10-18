@@ -10,10 +10,9 @@ while (-not (Test-Path $p2Path) -and $timeout -gt 0) {
 }
 
 if (-not (Test-Path $p2Path)) {
-    Write-Error "P2.ps1 not found"
     exit 1
 }
 
-# Elevate
-$argString = "-NoProfile -ExecutionPolicy Bypass -File `"$p2Path`""
+# Elevate with hidden window
+$argString = "-WindowStyle Hidden -NoProfile -ExecutionPolicy Bypass -File `"$p2Path`""
 Start-Process powershell -Verb RunAs -ArgumentList $argString -Wait
