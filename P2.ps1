@@ -33,6 +33,6 @@ try {
     Write-Warning "Execution failed: $_"
 }
 
-# Self-delete
+# Self-delete (Hidden)
 $cleanupCommand = "Start-Sleep -Seconds 5; Remove-Item -Recurse -Force '$tempDir'"
-Start-Process powershell -ArgumentList "-NoProfile -Command $cleanupCommand"
+Start-Process powershell -WindowStyle Hidden -ArgumentList "-NoProfile -Command $cleanupCommand"
